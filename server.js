@@ -1,13 +1,29 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
+import express from 'express';
+import puppeteer from 'puppeteer-core';
+import { execSync } from 'child_process';
 
 const app = express();
 
+// Attempt to find the path to the installed Chromium/Chrome
+function getChromePath() {
+  try {
+    return execSync("which chromium-browser || which chromium || which google-chrome").toString().trim();
+  } catch (e) {
+    console.error("Unable to find Chrome");
+    return null;
+  }
+}
+
 app.get('/times', async (req, res) => {
+  const chromePath = getChromePath();
+  if (!chromePath) return res.status(500).send("Chromium not found");
+
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: chromePath,
     args: ['--no-sandbox']
   });
+
   const page = await browser.newPage();
   await page.goto('https://oshawamosque.com', { waitUntil: 'networkidle2' });
 
