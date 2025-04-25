@@ -4,32 +4,29 @@ const fs = require('fs');
 (async () => {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   const page = await browser.newPage();
-  await page.goto('https://oshawamosque.com', { waitUntil: 'domcontentloaded' });
+  await page.goto('https://oshawamosque.com', { waitUntil: 'networkidle2' });
 
-  // ✅ Correct manual wait 15 seconds (DO NOT use page.waitForTimeout)
-  await new Promise(resolve => setTimeout(resolve, 15000));
+  // Allow extra time to fully render
+  console.log("🕒 Waiting for full dynamic load...");
+  await new Promise(resolve => setTimeout(resolve, 20000));
 
   const times = await page.evaluate(() => {
     const data = {};
-    const textBlocks = Array.from(document.querySelectorAll(".elementor-widget-container"))
-      .map(el => el.innerText)
-      .join("\n");
 
-    const fajrMatch = textBlocks.match(/Fajr[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
-    const zuhrMatch = textBlocks.match(/Zuhr[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
-    const asrMatch = textBlocks.match(/Asr[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
-    const maghribMatch = textBlocks.match(/Maghrib[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
-    const ishaMatch = textBlocks.match(/Isha[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
+    const getTime = (selector) => {
+      const element = document.querySelector(selector);
+      return element ? element.innerText.trim() : null;
+    };
 
-    if (fajrMatch) data.Fajr = fajrMatch[1];
-    if (zuhrMatch) data.Dhuhr = zuhrMatch[1];
-    if (asrMatch) data.Asr = asrMatch[1];
-    if (maghribMatch) data.Maghrib = maghribMatch[1];
-    if (ishaMatch) data.Isha = ishaMatch[1];
+    data.Fajr = getTime('.PrayerTime_Fajr');
+    data.Dhuhr = getTime('.PrayerTime_Dhuhr');
+    data.Asr = getTime('.PrayerTime_Asr');
+    data.Maghrib = getTime('.PrayerTime_Maghrib');
+    data.Isha = getTime('.PrayerTime_Isha');
 
     return data;
   });
@@ -38,7 +35,7 @@ const fs = require('fs');
 
   if (Object.keys(times).length > 0) {
     fs.writeFileSync('iqamah.json', JSON.stringify(times, null, 2));
-    console.log("✅ iqamah.json updated with data:", times);
+    console.log("✅ iqamah.json updated with:", times);
   } else {
     console.log("⚠️ No prayer times found. Skipping update.");
   }
