@@ -10,8 +10,8 @@ const fs = require('fs');
   const page = await browser.newPage();
   await page.goto('https://oshawamosque.com', { waitUntil: 'domcontentloaded' });
 
-  // Wait for the section that contains the prayer times
-  await page.waitForSelector('.elementor-widget-container', { timeout: 15000 });
+  // Instead of waiting for a selector, just wait 15 seconds manually
+  await page.waitForTimeout(15000); // wait 15 seconds
 
   const times = await page.evaluate(() => {
     const data = {};
@@ -19,7 +19,6 @@ const fs = require('fs');
       .map(el => el.innerText)
       .join("\n");
 
-    // Simple pattern matching
     const fajrMatch = textBlocks.match(/Fajr[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
     const zuhrMatch = textBlocks.match(/Zuhr[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
     const asrMatch = textBlocks.match(/Asr[\s\S]*?(\d{1,2}:\d{2}\s?[ap]m)/i);
@@ -37,7 +36,6 @@ const fs = require('fs');
 
   await browser.close();
 
-  // If at least one prayer was found, save the JSON
   if (Object.keys(times).length > 0) {
     fs.writeFileSync('iqamah.json', JSON.stringify(times, null, 2));
     console.log("✅ iqamah.json updated with data:", times);
