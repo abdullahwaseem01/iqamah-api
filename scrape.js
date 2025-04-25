@@ -10,7 +10,7 @@ const fs = require('fs');
   const page = await browser.newPage();
   await page.goto('https://oshawamosque.com', { waitUntil: 'domcontentloaded' });
 
-  // Correct manual wait for 15 seconds
+  // ✅ Correct manual wait 15 seconds (DO NOT use page.waitForTimeout)
   await new Promise(resolve => setTimeout(resolve, 15000));
 
   const times = await page.evaluate(() => {
